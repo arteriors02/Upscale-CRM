@@ -418,6 +418,7 @@ tr:hover td{background:#FFFDF6}
       <div class="wa-tpl" onclick="sendWA('followup')"><div class="wa-tpl-title">🔔 Follow Up</div><div class="wa-tpl-preview">Gentle reminder after 2-3 days</div></div>
       <div class="wa-tpl" onclick="sendWA('nopickup')"><div class="wa-tpl-title">📵 No Pickup — Follow Up</div><div class="wa-tpl-preview">No answer after 3 calls</div></div>
       <div class="wa-tpl" onclick="sendWA('quotation')"><div class="wa-tpl-title">💰 Quotation Follow Up</div><div class="wa-tpl-preview">After sending quotation</div></div>
+      <div class="wa-tpl" onclick="sendWA('reminder')"><div class="wa-tpl-title">📅 Site Visit Reminder</div><div class="wa-tpl-preview">1 day before — reminder message</div></div>
       <div class="wa-tpl" onclick="sendWA('layout')"><div class="wa-tpl-title">📐 Request Layout</div><div class="wa-tpl-preview">After call — request floor plan/layout</div></div>
       <div class="wa-tpl" onclick="sendWA('sitevisit')"><div class="wa-tpl-title">🏠 Site Visit Confirm</div><div class="wa-tpl-preview">Confirm visit date & time</div></div>
     </div>
@@ -598,8 +599,15 @@ function renderToday(){
     <div class="fu-title">Today's Follow Ups — ${due.length} lead${due.length!==1?'s':''}</div>
     ${due.map(l=>`<div class="fu-item">
       <div>
-        <div class="fu-name">${getName(l)}</div>
-        <div class="fu-detail">${getLocation(l)||getPhone(l)} · ${getBudget(l)||'—'} · ${getStage(l)}</div>
+        <div class="fu-name">${getName(l)} ${getScore(l)}</div>
+        <div class="fu-detail">${getPhone(l)}${getLocation(l)?' · '+getLocation(l):''}</div>
+        <div class="fu-detail" style="margin-top:2px">${[
+          cv(l['Project Type']||l['project_type_?']||l['project_type']||''),
+          cv(l['Property Type']||l['property_type.?']||l['property_type']||''),
+          cv(l['Scope']||l['scope_of_work.?']||l['scope_of_work']||''),
+          cv(l['Area (sq.ft)']||l['area_in_sq.ft.?']||'')
+        ].filter(Boolean).join(' · ')||'—'}</div>
+        <div class="fu-detail" style="margin-top:2px">${getBudget(l)||'—'} · ${getTimeline(l)||'—'} · <span style="color:${SC[getStage(l)]}">${getStage(l)}</span></div>
       </div>
       <div class="fu-btns">
         <button class="btn btn-call" onclick="openCall('${l.rowIndex}')">📞 Call</button>
@@ -1112,7 +1120,10 @@ async function sendWA(type){
   const name=getName(l);
   const num=getPhone(l).replace(/\D/g,'');
   let msg='';
-  if(type==='layout')msg=`Hi ${name},\n\nThank you for taking the time to speak with us today.\n\nAs discussed, kindly share your layout/floor plan at your earliest convenience so we can move forward with the design process.\n\nLooking forward to hearing from you.\n\nWarm regards,\nLavina Dadlani\nUpscale Arteriors`;
+  if(type==='reminder'){
+    const sv=l['Site Visit Date']?fmtDate(l['Site Visit Date']):'[DATE]';
+    msg=`Hi ${name},\n\nThis is a friendly reminder that our site visit is scheduled for tomorrow — ${sv} at [TIME].\n\nLooking forward to meeting you and seeing your space!\n\nWarm regards,\nLavina Dadlani\nUpscale Arteriors`;
+  } else if(type==='layout')msg=`Hi ${name},\n\nThank you for taking the time to speak with us today.\n\nAs discussed, kindly share your layout/floor plan at your earliest convenience so we can move forward with the design process.\n\nLooking forward to hearing from you.\n\nWarm regards,\nLavina Dadlani\nUpscale Arteriors`;
   else if(type==='portfolio')msg=`Hi ${name}! This is Lavina from Upscale Arteriors.\n\nThank you for your inquiry! Please have a look at our portfolio:\n${PORTFOLIO_LINK}\n\nFeel free to reach out if you have any questions!`;
   else if(type==='followup')msg=`Hi ${name}! This is Lavina from Upscale Arteriors.\n\nJust a quick follow up — any updates on your project? I'm here to help!\n\nWhen would be a good time to connect?`;
   else if(type==='nopickup')msg=`Hi ${name}! This is Lavina from Upscale Arteriors.\n\nI tried calling earlier — you were probably busy. Feel free to reply or call back whenever convenient!`;
