@@ -418,6 +418,7 @@ tr:hover td{background:#FFFDF6}
       <div class="wa-tpl" onclick="sendWA('followup')"><div class="wa-tpl-title">🔔 Follow Up</div><div class="wa-tpl-preview">Gentle reminder after 2-3 days</div></div>
       <div class="wa-tpl" onclick="sendWA('nopickup')"><div class="wa-tpl-title">📵 No Pickup — Follow Up</div><div class="wa-tpl-preview">No answer after 3 calls</div></div>
       <div class="wa-tpl" onclick="sendWA('quotation')"><div class="wa-tpl-title">💰 Quotation Follow Up</div><div class="wa-tpl-preview">After sending quotation</div></div>
+      <div class="wa-tpl" onclick="sendWA('layout')"><div class="wa-tpl-title">📐 Request Layout</div><div class="wa-tpl-preview">After call — request floor plan/layout</div></div>
       <div class="wa-tpl" onclick="sendWA('sitevisit')"><div class="wa-tpl-title">🏠 Site Visit Confirm</div><div class="wa-tpl-preview">Confirm visit date & time</div></div>
     </div>
     <div class="modal-actions"><button class="btn btn-cancel" onclick="closeModal('wa-bg')">Cancel</button></div>
@@ -1111,7 +1112,8 @@ async function sendWA(type){
   const name=getName(l);
   const num=getPhone(l).replace(/\D/g,'');
   let msg='';
-  if(type==='portfolio')msg=`Hi ${name}! This is Lavina from Upscale Arteriors.\n\nThank you for your inquiry! Please have a look at our portfolio:\n${PORTFOLIO_LINK}\n\nFeel free to reach out if you have any questions!`;
+  if(type==='layout')msg=`Hi ${name},\n\nThank you for taking the time to speak with us today.\n\nAs discussed, kindly share your layout/floor plan at your earliest convenience so we can move forward with the design process.\n\nLooking forward to hearing from you.\n\nWarm regards,\nLavina Dadlani\nUpscale Arteriors`;
+  else if(type==='portfolio')msg=`Hi ${name}! This is Lavina from Upscale Arteriors.\n\nThank you for your inquiry! Please have a look at our portfolio:\n${PORTFOLIO_LINK}\n\nFeel free to reach out if you have any questions!`;
   else if(type==='followup')msg=`Hi ${name}! This is Lavina from Upscale Arteriors.\n\nJust a quick follow up — any updates on your project? I'm here to help!\n\nWhen would be a good time to connect?`;
   else if(type==='nopickup')msg=`Hi ${name}! This is Lavina from Upscale Arteriors.\n\nI tried calling earlier — you were probably busy. Feel free to reply or call back whenever convenient!`;
   else if(type==='quotation')msg=`Hi ${name}! This is Lavina from Upscale Arteriors.\n\nI had sent across a quotation — did you receive it? Feel free to ask if you have any questions. We'll find the best solution for you!`;
