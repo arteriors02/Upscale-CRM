@@ -198,12 +198,42 @@ tbody td { padding:11px 14px; vertical-align:middle; }
 
 @media(max-width:1100px){.stats{grid-template-columns:repeat(4,1fr)}.pg{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:800px){.stats{grid-template-columns:repeat(2,1fr)}.dash-grid{grid-template-columns:1fr}.fg{grid-template-columns:1fr}.wa-grid{grid-template-columns:1fr}.dg{grid-template-columns:1fr}}
+
+/* ── MOBILE ── */
+.hamburger { display:none; background:none; border:none; cursor:pointer; padding:6px; flex-direction:column; gap:5px; }
+.hamburger span { display:block; width:22px; height:2px; background:var(--text); border-radius:2px; transition:all .2s; }
+.sb-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:199; }
+
+@media(max-width:640px) {
+  body { overflow:auto; }
+  .hamburger { display:flex; }
+  .sb {
+    position:fixed; top:0; left:0; height:100%; z-index:200;
+    transform:translateX(-100%); transition:transform .25s ease;
+    width:240px;
+  }
+  .sb.open { transform:translateX(0); }
+  .sb-backdrop.open { display:block; }
+  .main { width:100%; min-width:0; }
+  .topbar { padding:0 14px; height:52px; }
+  .tb-title h2 { font-size:15px; }
+  .tb-title p { display:none; }
+  .tb-actions .btn-outline { display:none; }
+  .page { padding:14px; }
+  .stats { grid-template-columns:repeat(2,1fr); gap:8px; }
+  .pg { grid-template-columns:1fr 1fr; }
+  .filter-bar { flex-direction:column; }
+  .filter-bar input,.filter-bar select { width:100%; }
+  .tw { font-size:12px; }
+  thead th { padding:8px 10px; font-size:10px; }
+  tbody td { padding:8px 10px; }
+}
 </style>
 </head>
 <body>
 
 <!-- SIDEBAR -->
-<div class="sb">
+<div class="sb" id="sb">
   <div class="sb-logo">
     <div class="sb-avatar">U</div>
     <div class="sb-name">Upscale Arteriors</div>
@@ -235,7 +265,10 @@ tbody td { padding:11px 14px; vertical-align:middle; }
 <!-- MAIN -->
 <div class="main">
   <div class="topbar">
-    <div class="tb-title"><h2 id="pgTitle">Dashboard</h2><p id="pgDate"></p></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+      <div class="tb-title"><h2 id="pgTitle">Dashboard</h2><p id="pgDate"></p></div>
+    </div>
     <div class="tb-actions">
       <button class="btn btn-outline" onclick="syncLeads()">⟳ Refresh</button>
       <button class="btn btn-gold" onclick="openAdd()">+ Add Lead</button>
@@ -330,9 +363,10 @@ tbody td { padding:11px 14px; vertical-align:middle; }
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="sb-backdrop" id="sbBackdrop" onclick="toggleSidebar()"></div>
 
 <script>
-const SCRIPT_URL    = 'https://script.google.com/macros/s/AKfycbxlJkWGU1B4Ip9pcg9bnv0CjEq5BwWYEd91DPGDm5ORj5IdbhJHKYMJVsePQksFXA/exec';
+const SCRIPT_URL    = 'https://script.google.com/macros/s/AKfycbx1QHp7RusNQKUlCcdAorfZBQSv20WADkt0VDNIhClG0qr7mMD8cd_ALWJ0OywPwivfRA/exec';
 const PORTFOLIO_URL = 'https://arteriors02.github.io/Upscale-CRM/portfolio.html';
 
 let leads  = [];
@@ -602,6 +636,12 @@ async function delLead(id) {
 function open2(id)  { document.querySelectorAll('.ov').forEach(o=>o.classList.remove('open')); document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
 function close2(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
 
+// SIDEBAR MOBILE TOGGLE
+function toggleSidebar() {
+  document.getElementById('sb').classList.toggle('open');
+  document.getElementById('sbBackdrop').classList.toggle('open');
+}
+
 // NAV
 function goPage(name,el) {
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
@@ -609,6 +649,9 @@ function goPage(name,el) {
   el.classList.add('active');
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pgTitle').textContent={dashboard:'Dashboard',pipeline:'Pipeline',leads:'All Leads',reports:'Reports',howto:'How to Use'}[name]||name;
+  // close sidebar on mobile after nav tap
+  document.getElementById('sb').classList.remove('open');
+  document.getElementById('sbBackdrop').classList.remove('open');
   render();
 }
 
