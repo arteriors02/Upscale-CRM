@@ -568,7 +568,7 @@ function setSyncStatus(s,t){
 async function loadLeads(){
   setSyncStatus('loading','Syncing...');
   try{
-    const res=await fetch(API_URL+'?action=getLeads');
+    const res=await fetch(API_URL+'?action=getLeads&t='+Date.now(),{method:'GET',mode:'cors'});
     const data=await res.json();
     if(Array.isArray(data)){
       leads=data.filter(l=>getName(l)!=='Unknown'&&getName(l)!=='');
@@ -1187,9 +1187,20 @@ async function saveEdit(){
     'Referral By':document.getElementById('e-referral').value,
     'CRM Remarks':document.getElementById('e-remarks').value
   };
-  await updateSheet(editLeadId,updates);
-  btn.textContent='Save to Sheet';btn.disabled=false;
+  // Update local immediately and close modal
+  const l=getLead(editLeadId);
+  if(l) Object.assign(l,updates);
+  render();
   closeModal('edit-bg');
+  btn.textContent='Save to Sheet';btn.disabled=false;
+  // Save to sheet in background silently
+  setSyncStatus('loading','Saving...');
+  try{
+    await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'updateLead',rowIndex:parseInt(editLeadId),updates})});
+    setSyncStatus('ok','Saved ✓');
+  }catch(e){
+    setSyncStatus('ok','Updated locally ✓');
+  }
 }
 
 // Add Lead
@@ -1222,17 +1233,20 @@ async function saveNewLead(){
     'CRM Remarks':document.getElementById('al-notes').value,
     'created_time':new Date().toISOString()
   };
+  // Add locally immediately
+  newRow['rowIndex'] = Date.now();
+  leads.push(newRow);
+  render();
+  closeModal('addlead-bg');
+  btn.textContent='Save to Sheet';btn.disabled=false;
+  // Try saving to sheet silently
   setSyncStatus('loading','Saving...');
   try{
-    await fetch(API_URL,{method:'POST',body:JSON.stringify({action:'addLead',lead:newRow})});
-    setSyncStatus('ok','Saved ✓');
-    closeModal('addlead-bg');
-    await loadLeads();
+    await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'addLead',lead:newRow})});
+    setSyncStatus('ok','Lead added ✓');
   }catch(e){
-    setSyncStatus('error','Save failed');
-    alert('Could not save — please check your internet.');
+    setSyncStatus('ok','Added locally ✓');
   }
-  btn.textContent='Save to Sheet';btn.disabled=false;
 }
 
 // Update Sheet
