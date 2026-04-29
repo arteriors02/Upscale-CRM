@@ -638,7 +638,6 @@ function renderStats(){
   document.getElementById('stats').innerHTML=`
     <div class="stat" style="cursor:default"><div class="stat-label">Total Leads</div><div class="stat-val">${total}</div></div>
     <div class="stat stat-clickable" id="sc-pending" onclick="filterDashboard('pending')" title="Click to filter"><div class="stat-label">Call Pending</div><div class="stat-val" style="color:var(--blue)">${newL}</div></div>
-    <div class="stat stat-clickable" onclick="filterDashboard('notcontacted')" title="Click to filter" style="border-color:#E24B4A;background:#FFF5F5"><div class="stat-label" style="color:#E24B4A">Not Contacted</div><div class="stat-val" style="color:#E24B4A">${notContacted}</div></div>
     <div class="stat stat-clickable" onclick="filterDashboard('busynopick')" title="Click to filter" style="border-color:#EF9F27;background:#FFFBF0"><div class="stat-label" style="color:#EF9F27">Busy / No Pickup</div><div class="stat-val" style="color:#EF9F27">${busyNoPick}</div></div>
     <div class="stat"><div class="stat-label">Follow Up Today</div><div class="stat-val" style="color:${due>0?'var(--amber)':'inherit'}">${due}</div></div>
     <div class="stat stat-clickable" id="sc-progress" onclick="filterDashboard('progress')" title="Click to filter"><div class="stat-label">In Progress</div><div class="stat-val" style="color:var(--purple)">${inProg}</div></div>
