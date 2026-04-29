@@ -620,7 +620,14 @@ function renderToday(){
 // Stats
 function renderStats(){
   const total=leads.length;
-  const newL=leads.filter(l=>getStage(l)==='New Lead').length;
+  // CALL PENDING = New Lead + never called
+  const callPendingLeads = leads.filter(l => getStage(l)==='New Lead' && (!l['Call Status']||l['Call Status']==='—'||l['Call Status'].trim()===''||l['Call Status']==='Not Called'||l['Call Status']==='0'));
+  const newL = callPendingLeads.length;
+  // BUSY/NO PICKUP = Any stage + call attempted but not connected
+  const busyNoPick = leads.filter(l => {
+    const cs = (l['Call Status']||'').toString();
+    return cs.includes('No Pickup')||cs.includes('Busy')||cs.includes('Retry')||cs.includes('Call Back')||cs.includes('📵')||cs.includes('🔄');
+  }).length;
   const conv=leads.filter(l=>getStage(l)==='Converted').length;
   const inProg=leads.filter(l=>['Contacted','Site Visit','Proposal Sent'].includes(getStage(l))).length;
   const tod=today();
@@ -631,6 +638,8 @@ function renderStats(){
   document.getElementById('stats').innerHTML=`
     <div class="stat" style="cursor:default"><div class="stat-label">Total Leads</div><div class="stat-val">${total}</div></div>
     <div class="stat stat-clickable" id="sc-pending" onclick="filterDashboard('pending')" title="Click to filter"><div class="stat-label">Call Pending</div><div class="stat-val" style="color:var(--blue)">${newL}</div></div>
+    <div class="stat stat-clickable" onclick="filterDashboard('notcontacted')" title="Click to filter" style="border-color:#E24B4A;background:#FFF5F5"><div class="stat-label" style="color:#E24B4A">Not Contacted</div><div class="stat-val" style="color:#E24B4A">${notContacted}</div></div>
+    <div class="stat stat-clickable" onclick="filterDashboard('busynopick')" title="Click to filter" style="border-color:#EF9F27;background:#FFFBF0"><div class="stat-label" style="color:#EF9F27">Busy / No Pickup</div><div class="stat-val" style="color:#EF9F27">${busyNoPick}</div></div>
     <div class="stat"><div class="stat-label">Follow Up Today</div><div class="stat-val" style="color:${due>0?'var(--amber)':'inherit'}">${due}</div></div>
     <div class="stat stat-clickable" id="sc-progress" onclick="filterDashboard('progress')" title="Click to filter"><div class="stat-label">In Progress</div><div class="stat-val" style="color:var(--purple)">${inProg}</div></div>
     <div class="stat gold stat-clickable" id="sc-converted" onclick="filterDashboard('converted')" title="Click to filter"><div class="stat-label">Converted</div><div class="stat-val">${conv}</div></div>
@@ -642,7 +651,7 @@ function renderStats(){
 
 // Fresh leads
 function renderFreshLeads(){
-  const newLeads=leads.filter(l=>getStage(l)==='New Lead');
+  const newLeads=leads.filter(l=>getStage(l)==='New Lead'&&(!l['Call Status']||l['Call Status']==='—'||l['Call Status'].trim()===''||l['Call Status']==='Not Called'||l['Call Status']==='0'));
   const el=document.getElementById('fresh-leads-list');
   if(!newLeads.length){el.innerHTML='<div class="empty">No new leads</div>';return;}
   const show=newLeads.slice(0,5);
@@ -931,8 +940,12 @@ function filterDashboard(filter) {
   let title = '';
 
   if (filter === 'pending') {
-    filtered = leads.filter(l => getStage(l) === 'New Lead');
-    title = 'Call Pending — New Leads';
+    filtered = leads.filter(l => getStage(l)==='New Lead' && (!l['Call Status']||l['Call Status']==='—'||l['Call Status'].trim()===''||l['Call Status']==='Not Called'||l['Call Status']==='0'));
+    title = 'Call Pending — Not Called Yet';
+  } else if (filter === 'busynopick') {
+    const cs_check = cs => cs.includes('No Pickup')||cs.includes('Busy')||cs.includes('Retry')||cs.includes('Call Back')||cs.includes('📵')||cs.includes('🔄');
+    filtered = leads.filter(l => cs_check((l['Call Status']||'').toString()));
+    title = 'Busy / No Pickup — Retry Karo';
   } else if (filter === 'progress') {
     filtered = leads.filter(l => ['Contacted','Site Visit','Proposal Sent'].includes(getStage(l)));
     title = 'In Progress Leads';
@@ -1062,13 +1075,12 @@ function selectCallResult(r){
 }
 
 async function saveCallResult(){
-  if(!callResult){alert('Please select what happened on the call.');return;}
+  if(!callResult){showToast('Please select what happened on the call.');return;}
   const l=getLead(callLeadId);
   let newStage=getStage(l),newFollowup='',callStatus='';
   const remark=document.getElementById('call-remark').value.trim();
   const now=new Date();
   const attempts=parseInt(l['Call Attempts']||'0')+1;
-
   if(callResult==='no_pickup'){
     callStatus='📵 No Pickup';
     const fu=new Date();
@@ -1077,34 +1089,33 @@ async function saveCallResult(){
     else if(attempts===3){fu.setDate(fu.getDate()+2);fu.setHours(10,0,0,0);}
     else{fu.setDate(fu.getDate()+3);fu.setHours(10,0,0,0);}
     newFollowup=fu.toISOString().split('T')[0];
-
   }else if(callResult==='callback'){
-    // Same for retry same day OR call back later
     callStatus='🔄 Call Back / Retry';
     const cbTime=document.getElementById('callback-time').value;
     newFollowup=cbTime?cbTime.split('T')[0]:new Date().toISOString().split('T')[0];
-
   }else if(callResult==='connected'){
     callStatus='✅ Connected — Interested';
     newStage=document.getElementById('connected-stage').value;
     const fu=new Date();fu.setDate(fu.getDate()+3);
     newFollowup=fu.toISOString().split('T')[0];
-
   }else if(callResult==='not_interested'){
     callStatus='❌ Not Interested';
     newStage='Lost';newFollowup='';
   }
-
-  const updates={
-    'Stage':newStage,
-    'Call Status':callStatus,
-    'Call Attempts':attempts.toString(),
-    'Last Contacted':now.toISOString().split('T')[0]
-  };
+  const updates={'Stage':newStage,'Call Status':callStatus,'Call Attempts':attempts.toString(),'Last Contacted':now.toISOString().split('T')[0]};
   if(newFollowup)updates['Follow Up Date']=newFollowup;
   if(remark)updates['CRM Remarks']=remark;
-  await updateSheet(callLeadId,updates);
+  // Update local & close modal IMMEDIATELY
+  if(l) Object.assign(l,updates);
+  render();
   closeModal('call-bg');
+  // Save to sheet silently in background
+  try{
+    await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'updateLead',rowIndex:parseInt(callLeadId),updates})});
+    setSyncStatus('ok','Saved ✓');
+  }catch(e){
+    setSyncStatus('ok','Updated locally ✓');
+  }
 }
 
 // WA flow
@@ -1173,8 +1184,6 @@ function openEdit(rowIndex){
 }
 
 async function saveEdit(){
-  const btn=document.getElementById('save-edit-btn');
-  btn.textContent='Saving...';btn.disabled=true;
   const updates={
     'Stage':document.getElementById('e-stage').value,
     'Lead Score':document.getElementById('e-score').value,
@@ -1187,14 +1196,12 @@ async function saveEdit(){
     'Referral By':document.getElementById('e-referral').value,
     'CRM Remarks':document.getElementById('e-remarks').value
   };
-  // Update local immediately and close modal
+  // Update local & close IMMEDIATELY — no waiting
   const l=getLead(editLeadId);
   if(l) Object.assign(l,updates);
   render();
   closeModal('edit-bg');
-  btn.textContent='Save to Sheet';btn.disabled=false;
-  // Save to sheet in background silently
-  setSyncStatus('loading','Saving...');
+  // Save silently in background
   try{
     await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'updateLead',rowIndex:parseInt(editLeadId),updates})});
     setSyncStatus('ok','Saved ✓');
@@ -1214,7 +1221,7 @@ function openAddLead(){
 async function saveNewLead(){
   const name=document.getElementById('al-name').value.trim();
   const phone=document.getElementById('al-phone').value.trim();
-  if(!name||!phone){alert('Name and phone are required.');return;}
+  if(!name||!phone){showToast('Name and phone are required.');return;}
   const btn=document.getElementById('al-save-btn');
   btn.textContent='Saving...';btn.disabled=true;
   const newRow={
@@ -1263,6 +1270,13 @@ async function updateSheet(rowIndex,updates){
   }
 }
 
+
+function showToast(msg){
+  let t=document.getElementById('crm-toast');
+  if(!t){t=document.createElement('div');t.id='crm-toast';t.style.cssText='position:fixed;bottom:24px;right:24px;background:#1C1C1C;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';
+  setTimeout(()=>{t.style.opacity='0';},2500);
+}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function bgClose(e,id){if(e.target===document.getElementById(id))closeModal(id);}
 
@@ -1280,7 +1294,7 @@ function getFilteredLeads(){
 
 function downloadLeadsCSV(){
   const f=getFilteredLeads();
-  if(!f.length){alert('No leads to download.');return;}
+  if(!f.length){showToast('No leads to download.');return;}
   const headers=['Name','Phone','Email','Project Type','Property Type','Scope','Area','Budget','Location','Timeline','Source','Lead Score','Stage','Call Status','Call Attempts','Last Contacted','Follow Up Date','CRM Remarks'];
   const rows=f.map(l=>[
     getName(l),getPhone(l),l['email']||l['Email']||'',
@@ -1305,7 +1319,7 @@ function downloadLeadsCSV(){
 
 function downloadLeadsPDF(){
   const f=getFilteredLeads();
-  if(!f.length){alert('No leads to download.');return;}
+  if(!f.length){showToast('No leads to download.');return;}
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><title>Upscale Arteriors — All Leads</title>
   <style>
@@ -1356,7 +1370,7 @@ function downloadReportsCSV(){
     const ct=(l['Lead Date']||l['created_time']||'').toString().split('T')[0];
     return (lc>=from&&lc<=to)||(ct>=from&&ct<=to);
   });
-  if(!inPeriod.length){alert('No data to download for this period.');return;}
+  if(!inPeriod.length){showToast('No data to download for this period.');return;}
   const headers=['Name','Phone','Stage','Call Status','Call Attempts','Last Contacted','Follow Up Date','CRM Remarks'];
   const rows=inPeriod.map(l=>[
     getName(l),getPhone(l),getStage(l),
