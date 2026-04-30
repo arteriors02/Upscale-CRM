@@ -178,6 +178,27 @@ tr:hover td{background:#FFFDF6}
 .mobile-brand{font-family:'Cormorant Garamond',serif;font-size:16px;color:#fff;font-weight:600}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:49}
 
+/* DESKTOP RIGHT PANEL */
+.leads-layout { display: flex; gap: 0; }
+.leads-table-wrap { flex: 1; min-width: 0; transition: all .3s; }
+.lead-panel { width: 0; overflow: hidden; transition: all .3s; flex-shrink: 0; }
+.lead-panel.open { width: 360px; border-left: 1px solid var(--border); padding: 0; }
+.lead-panel-inner { width: 360px; padding: 16px; height: calc(100vh - 120px); overflow-y: auto; position: sticky; top: 60px; }
+.lp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.lp-name { font-size: 15px; font-weight: 600; }
+.lp-close { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--soft); padding: 2px 6px; border-radius: 4px; }
+.lp-close:hover { background: var(--bg); }
+.lp-section { margin-bottom: 14px; }
+.lp-section-title { font-size: 10px; font-weight: 500; color: var(--gold); text-transform: uppercase; letter-spacing: .7px; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+.lp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.lp-item label { font-size: 10px; color: var(--soft); display: block; margin-bottom: 2px; }
+.lp-item span { font-size: 12px; font-weight: 500; color: var(--dark); }
+.lp-actions { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.lp-timeline { margin-top: 10px; }
+.lp-timeline-item { display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
+.lp-timeline-item:last-child { border-bottom: none; }
+.lp-timeline-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); margin-top: 4px; flex-shrink: 0; }
+
 @media(max-width:768px){
   .sidebar{transform:translateX(-100%);transition:transform .25s;z-index:55;position:fixed;top:0;bottom:0;left:0;width:220px;height:100vh;overflow-y:auto}
   .sidebar.open{transform:translateX(0)}
@@ -294,11 +315,25 @@ tr:hover td{background:#FFFDF6}
         <button onclick="downloadLeadsCSV()" style="padding:7px 12px;border:1px solid var(--border);border-radius:7px;background:none;font-size:12px;cursor:pointer;color:var(--mid);font-family:'DM Sans',sans-serif">↓ Excel</button>
         <button onclick="downloadLeadsPDF()" style="padding:7px 12px;border:1px solid var(--border);border-radius:7px;background:none;font-size:12px;cursor:pointer;color:var(--mid);font-family:'DM Sans',sans-serif">↓ PDF</button>
       </div>
+      <div style="display:flex;gap:0;align-items:flex-start">
+      <div style="flex:1;min-width:0">
       <div class="table-wrap">
         <table>
           <thead><tr><th>Name</th><th>Intake Date</th><th>Phone</th><th>Project</th><th>Property</th><th>Scope</th><th>Area</th><th>Budget</th><th>Location</th><th>Timeline</th><th>Source</th><th>Score</th><th>Stage</th><th>Follow Up</th><th>Actions</th></tr></thead>
           <tbody id="leads-table"></tbody>
         </table>
+      </div>
+      </div><!-- /table inner -->
+      </div><!-- /flex -->
+      <!-- DESKTOP RIGHT PANEL -->
+      <div class="lead-panel" id="lead-panel">
+        <div class="lead-panel-inner" id="lead-panel-inner">
+          <div class="lp-header">
+            <div class="lp-name" id="lp-name">Lead Details</div>
+            <button class="lp-close" onclick="closeLeadPanel()">×</button>
+          </div>
+          <div id="lp-content"></div>
+        </div>
       </div>
     </div>
 
@@ -716,17 +751,21 @@ function renderAll(){
   const q=(document.getElementById('search-input')||{}).value?.toLowerCase()||'';
   const fs=(document.getElementById('filter-stage')||{}).value||'';
   const fsc=(document.getElementById('filter-score')||{}).value||'';
+  // Show ALL leads by default — filter only when something is selected
   const f=leads.filter(l=>{
     const m=!q||getName(l).toLowerCase().includes(q)||getPhone(l).includes(q)||getLocation(l).toLowerCase().includes(q);
     return m&&(!fs||getStage(l)===fs)&&(!fsc||getScore(l)===fsc);
   });
   const tb=document.getElementById('leads-table');
-  if(!f.length){tb.innerHTML='<tr><td colspan="15" style="text-align:center;color:#7A7A7A;padding:2rem">No leads found</td></tr>';return;}
+  if(!leads.length){tb.innerHTML='<tr><td colspan="15" style="text-align:center;color:#7A7A7A;padding:2rem">No leads loaded — tap Refresh</td></tr>';return;}
+  if(!f.length){tb.innerHTML='<tr><td colspan="15" style="text-align:center;color:#7A7A7A;padding:2rem">No leads match this filter</td></tr>';return;}
   tb.innerHTML=f.map(l=>{
     const ct=l['Lead Date']||l['created_time']||'';
     const intakeDate=ct?new Date(ct.toString().includes('T')?ct:ct+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'2-digit'}):'—';
-    return `<tr>
-    <td style="font-weight:500">${getName(l)}</td>
+    const calls=parseInt(l['Call Attempts']||'0');
+    const fuDate=getFollowUp(l)?fmtDate(getFollowUp(l)):'—';
+    return `<tr onclick="openLeadPanel('${l.rowIndex}')" style="cursor:pointer">
+    <td style="font-weight:500">${getName(l)}<div style="font-size:10px;color:var(--soft);margin-top:2px">📞 ${calls} calls &nbsp;·&nbsp; 📅 ${fuDate}</div></td>
     <td style="font-size:11px;color:var(--soft);white-space:nowrap">${intakeDate}</td>
     <td>${getPhone(l)}</td>
     <td>${cv(l['Project Type']||l['project_type_?']||l['project_type']||'—')}</td>
@@ -739,8 +778,8 @@ function renderAll(){
     <td>${l['Source']||l['platform']||'—'}</td>
     <td>${getScore(l)||'—'}</td>
     <td><span class="badge" style="background:${SC[getStage(l)]}18;color:${SC[getStage(l)]}">${getStage(l)}</span></td>
-    <td>${getFollowUp(l)?fmtDate(getFollowUp(l)):'—'}</td>
-    <td style="display:flex;gap:4px;align-items:center">
+    <td>${fuDate}</td>
+    <td style="display:flex;gap:4px;align-items:center" onclick="event.stopPropagation()">
       <button class="btn btn-call" onclick="openCall('${l.rowIndex}')">📞</button>
       <button class="btn btn-wa" onclick="openWA('${l.rowIndex}')">💬</button>
       <button class="btn btn-edit" onclick="openEdit('${l.rowIndex}')">✏️</button>
@@ -1475,6 +1514,99 @@ function downloadReportsPDF(){
 }
 
 // ── END DOWNLOAD ──
+
+
+// ── DESKTOP LEAD PANEL ──
+let activePanelId = null;
+
+function openLeadPanel(rowIndex) {
+  // Only on desktop
+  if(window.innerWidth <= 768) { openEdit(rowIndex); return; }
+  
+  activePanelId = rowIndex;
+  const l = getLead(rowIndex);
+  if(!l) return;
+
+  // Highlight selected row
+  document.querySelectorAll('#leads-table tr').forEach(r => r.style.background = '');
+  const rows = document.querySelectorAll('#leads-table tr');
+  rows.forEach(r => {
+    if(r.onclick && r.onclick.toString().includes(rowIndex)) r.style.background = '#FFFDF6';
+  });
+
+  document.getElementById('lp-name').textContent = getName(l);
+  
+  const calls = parseInt(l['Call Attempts']||'0');
+  const fu = getFollowUp(l) ? fmtDate(getFollowUp(l)) : '—';
+  const stage = getStage(l);
+  const stageColor = SC[stage] || '#7A7A7A';
+
+  document.getElementById('lp-content').innerHTML = `
+    <div class="lp-actions">
+      <button class="btn btn-call" onclick="openCall('${rowIndex}')">📞 Call</button>
+      <button class="btn btn-wa" onclick="openWA('${rowIndex}')">💬 WA</button>
+      <button class="btn btn-edit" onclick="openEdit('${rowIndex}')">✏️ Edit</button>
+    </div>
+
+    <div class="lp-section">
+      <div class="lp-section-title">Contact Info</div>
+      <div class="lp-grid">
+        <div class="lp-item"><label>Phone</label><span>${getPhone(l)}</span></div>
+        <div class="lp-item"><label>Email</label><span>${l['email']||l['Email']||'—'}</span></div>
+        <div class="lp-item"><label>Location</label><span>${getLocation(l)||'—'}</span></div>
+        <div class="lp-item"><label>Source</label><span>${l['Source']||l['platform']||'—'}</span></div>
+      </div>
+    </div>
+
+    <div class="lp-section">
+      <div class="lp-section-title">Project Details</div>
+      <div class="lp-grid">
+        <div class="lp-item"><label>Type</label><span>${cv(l['Project Type']||l['project_type_?']||'—')}</span></div>
+        <div class="lp-item"><label>Property</label><span>${cv(l['Property Type']||l['property_type.?']||'—')}</span></div>
+        <div class="lp-item"><label>Scope</label><span>${cv(l['Scope']||l['scope_of_work.?']||'—')}</span></div>
+        <div class="lp-item"><label>Area</label><span>${cv(l['Area (sq.ft)']||l['area_in_sq.ft.?']||'—')}</span></div>
+        <div class="lp-item"><label>Budget</label><span>${getBudget(l)||'—'}</span></div>
+        <div class="lp-item"><label>Timeline</label><span>${getTimeline(l)||'—'}</span></div>
+      </div>
+    </div>
+
+    <div class="lp-section">
+      <div class="lp-section-title">CRM Status</div>
+      <div class="lp-grid">
+        <div class="lp-item"><label>Stage</label><span style="color:${stageColor};font-weight:600">${stage}</span></div>
+        <div class="lp-item"><label>Score</label><span>${getScore(l)||'—'}</span></div>
+        <div class="lp-item"><label>Call Status</label><span>${l['Call Status']||'—'}</span></div>
+        <div class="lp-item"><label>Call Attempts</label><span>${calls}</span></div>
+        <div class="lp-item"><label>Follow Up</label><span style="color:var(--amber)">${fu}</span></div>
+        <div class="lp-item"><label>Site Visit</label><span>${l['Site Visit Date']?fmtDate(l['Site Visit Date']):'—'}</span></div>
+        <div class="lp-item"><label>Proposal (₹)</label><span>${l['Proposal Amount (₹)']||'—'}</span></div>
+        <div class="lp-item"><label>Last Contacted</label><span>${l['Last Contacted']||'—'}</span></div>
+      </div>
+      ${l['CRM Remarks']?`<div style="margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:6px;font-size:12px;color:var(--mid)">${l['CRM Remarks']}</div>`:''}
+    </div>
+
+    <div class="lp-section">
+      <div class="lp-section-title">Lead History</div>
+      <div class="lp-timeline">
+        ${l['Lead Date']||l['created_time']?`<div class="lp-timeline-item"><div class="lp-timeline-dot" style="background:var(--blue)"></div><div><div style="font-weight:500;color:var(--dark)">Lead Created</div><div style="color:var(--soft)">${(()=>{try{const d=new Date((l['Lead Date']||l['created_time']).toString().includes('T')?(l['Lead Date']||l['created_time']):(l['Lead Date']||l['created_time'])+'T00:00:00');return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}catch{return l['Lead Date']||l['created_time']||'';}})()}</div></div></div>`:''}
+        ${l['Call Attempts']&&parseInt(l['Call Attempts'])>0?`<div class="lp-timeline-item"><div class="lp-timeline-dot" style="background:var(--amber)"></div><div><div style="font-weight:500;color:var(--dark)">${calls} Call${calls>1?'s':''} Made</div><div style="color:var(--soft)">${l['Call Status']||''}</div></div></div>`:''}
+        ${l['Last Contacted']?`<div class="lp-timeline-item"><div class="lp-timeline-dot" style="background:var(--green)"></div><div><div style="font-weight:500;color:var(--dark)">Last Contacted</div><div style="color:var(--soft)">${l['Last Contacted']}</div></div></div>`:''}
+        ${stage!=='New Lead'?`<div class="lp-timeline-item"><div class="lp-timeline-dot" style="background:${stageColor}"></div><div><div style="font-weight:500;color:${stageColor}">Stage: ${stage}</div></div></div>`:''}
+        ${l['Follow Up Date']?`<div class="lp-timeline-item"><div class="lp-timeline-dot" style="background:var(--amber)"></div><div><div style="font-weight:500;color:var(--dark)">Follow Up Set</div><div style="color:var(--soft)">${fu}</div></div></div>`:''}
+        ${l['Proposal Amount (₹)']?`<div class="lp-timeline-item"><div class="lp-timeline-dot" style="background:var(--gold)"></div><div><div style="font-weight:500;color:var(--dark)">Proposal Sent</div><div style="color:var(--soft)">₹${l['Proposal Amount (₹)']}</div></div></div>`:''}
+      </div>
+    </div>
+  `;
+
+  document.getElementById('lead-panel').classList.add('open');
+}
+
+function closeLeadPanel() {
+  document.getElementById('lead-panel').classList.remove('open');
+  activePanelId = null;
+  document.querySelectorAll('#leads-table tr').forEach(r => r.style.background = '');
+}
+// ── END DESKTOP LEAD PANEL ──
 
 // Init
 loadLeads();
