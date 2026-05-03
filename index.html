@@ -173,6 +173,51 @@ tr:hover td{background:#FFFDF6}
 .report-label{color:var(--soft);font-size:12px}
 .report-val{font-weight:500}
 .report-pct{font-size:11px;color:var(--soft);margin-left:4px}
+
+/* ── ACTIVITY TIMELINE ── */
+.tl{margin-top:10px}
+.tl-row{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:flex-start}
+.tl-row:last-child{border-bottom:none}
+.tl-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;box-shadow:0 0 0 2px #fff}
+.tl-blue{background:var(--blue)}.tl-gold{background:var(--gold)}.tl-green{background:var(--green)}
+.tl-red{background:var(--red)}.tl-amber{background:var(--amber)}.tl-purple{background:var(--purple)}
+.tl-info strong{color:var(--dark);font-size:12px;font-weight:500;display:block}
+.tl-info small{color:var(--soft);font-size:11px}
+
+/* ── SCORE BADGES ── */
+.sc-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;vertical-align:middle;margin-left:4px}
+.sc-hot{background:#FDE8E8;color:#C0392B}
+.sc-warm{background:#FEF9E7;color:#D4820A}
+.sc-cold{background:#EBF4FF;color:#2471A3}
+
+/* ── FRESH CARD ENHANCED ── */
+.fc-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.fc-chip{font-size:10px;padding:2px 7px;border-radius:10px;background:var(--bg);border:1px solid var(--border);color:var(--soft)}
+.fc-chip.budget{border-color:var(--gold);color:var(--gold);background:#FFFDF6}
+.fc-time{font-size:10px;color:var(--soft);flex-shrink:0}
+.fc-btns{display:flex;gap:6px;margin-top:8px}
+.fc-btn{flex:1;padding:6px 8px;border-radius:7px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid transparent;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;transition:all .15s}
+.fc-btn-call{background:#EBF4FF;color:var(--blue);border-color:#B5D4F4}
+.fc-btn-call:hover{background:var(--blue);color:#fff}
+.fc-btn-wa{background:#E8F8EF;color:var(--green);border-color:#9FE1CB}
+.fc-btn-wa:hover{background:#25D366;color:#fff;border-color:#25D366}
+.fc-btn-edit{background:var(--bg);color:var(--soft);border-color:var(--border)}
+.fc-btn-edit:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ── NOTIFICATION TOAST ── */
+.notif-toast{position:fixed;top:16px;right:16px;background:var(--dark);color:#fff;border-radius:12px;padding:14px 18px;font-size:13px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.3);transform:translateX(120%);transition:transform .4s cubic-bezier(.34,1.56,.64,1);max-width:300px;border-left:4px solid var(--gold);min-width:260px}
+.notif-toast.show{transform:translateX(0)}
+.nt-title{font-weight:600;font-size:13px;margin-bottom:3px}
+.nt-sub{font-size:11px;color:rgba(255,255,255,.65);margin-bottom:10px}
+.nt-close{position:absolute;top:10px;right:12px;background:none;border:none;color:rgba(255,255,255,.5);font-size:18px;cursor:pointer;line-height:1;padding:2px 4px}
+.nt-close:hover{color:#fff}
+.nt-btns{display:flex;gap:7px}
+.nt-btn{padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all .15s}
+.nt-gold{background:var(--gold);color:#fff}
+.nt-gold:hover{opacity:.85}
+.nt-ghost{background:rgba(255,255,255,.15);color:#fff}
+.nt-ghost:hover{background:rgba(255,255,255,.25)}
+
 .mobile-header{display:none;background:var(--dark);padding:.75rem 1rem;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:60}
 .hamburger{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px}
 .mobile-brand{font-family:'Cormorant Garamond',serif;font-size:16px;color:#fff;font-weight:600}
@@ -490,6 +535,11 @@ tr:hover td{background:#FFFDF6}
       <select id="e-reasonlost"><option value="">— Select —</option><option>Price Too High</option><option>Went with Competitor</option><option>Not Serious / Just Browsing</option><option>Location Not Serviceable</option><option>No Response</option><option>Project Postponed</option><option>Other</option></select></div>
     <div class="fg"><label>Referral By</label><input id="e-referral" placeholder="Name if referred by someone"></div>
     <div class="fg"><label>CRM Remarks</label><textarea id="e-remarks" placeholder="Notes, observations..."></textarea></div>
+    <!-- TIMELINE -->
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+      <div style="font-size:10px;font-weight:500;color:var(--gold);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">📋 Activity History</div>
+      <div id="leadTimeline" class="tl"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-cancel" onclick="closeModal('edit-bg')">Cancel</button>
       <button class="btn btn-primary" id="save-edit-btn" onclick="saveEdit()">Save to Sheet</button>
@@ -606,7 +656,9 @@ async function loadLeads(){
     const res=await fetch(API_URL+'?action=getLeads&t='+Date.now(),{method:'GET',mode:'cors'});
     const data=await res.json();
     if(Array.isArray(data)){
-      leads=data.filter(l=>getName(l)!=='Unknown'&&getName(l)!=='');
+      const freshData=data.filter(l=>getName(l)!=='Unknown'&&getName(l)!=='');
+      checkNewLeads(freshData);
+      leads=freshData;
       setSyncStatus('ok','Synced ✓');
       const now=new Date();
       const lr=document.getElementById('last-refresh');
@@ -683,32 +735,57 @@ function renderStats(){
   `;
 }
 
-// Fresh leads
+// Fresh leads — Privyr style
+function timeAgo(ct){
+  if(!ct)return '';
+  try{
+    const d=new Date(ct.toString().includes('T')?ct:ct+'T00:00:00');
+    const diff=Date.now()-d;
+    const m=Math.floor(diff/60000),h=Math.floor(diff/3600000),dy=Math.floor(diff/86400000);
+    if(dy>0)return dy+'d ago';if(h>0)return h+'h ago';return m+'m ago';
+  }catch{return '';}
+}
+function scoreBadge(s){
+  if(!s||s==='—')return '';
+  const cls=s.includes('Hot')?'sc-hot':s.includes('Warm')?'sc-warm':'sc-cold';
+  const icon=s.includes('Hot')?'🔥':s.includes('Warm')?'🟡':'🔵';
+  return `<span class="sc-badge ${cls}">${icon} ${s}</span>`;
+}
 function renderFreshLeads(){
   const newLeads=leads.filter(l=>getStage(l)==='New Lead'&&(!l['Call Status']||l['Call Status']==='—'||l['Call Status'].trim()===''||l['Call Status']==='Not Called'||l['Call Status']==='0'));
   const el=document.getElementById('fresh-leads-list');
-  if(!newLeads.length){el.innerHTML='<div class="empty">No new leads</div>';return;}
-  const show=newLeads.slice(0,5);
-  el.innerHTML=show.map(l=>`
-    <div class="fresh-card" onclick="openEdit('${l.rowIndex}')">
-      <div class="fresh-top">
-        <div class="fresh-name">${getName(l)} ${getScore(l)}</div>
-        <span style="font-size:10px;color:var(--soft)">${(()=>{const ct=l['Lead Date']||l['created_time']||'';if(!ct)return '';try{const d=new Date(ct.toString().includes('T')?ct:ct+'T00:00:00');return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}catch{return '';}})()}</span>
+  if(!newLeads.length){el.innerHTML='<div class="empty">No call-pending leads 👍</div>';return;}
+  const show=newLeads.slice(0,6);
+  el.innerHTML=show.map(l=>{
+    const calls=parseInt(l['Call Attempts']||'0');
+    const ta=timeAgo(l['Lead Date']||l['created_time']||'');
+    const chips=[
+      cv(l['Property Type']||l['property_type.?']||''),
+      cv(l['Scope']||l['scope_of_work.?']||''),
+      cv(l['Area (sq.ft)']||l['area_in_sq.ft.?']||''),
+      getTimeline(l)
+    ].filter(Boolean);
+    return `<div class="fresh-card">
+      <div class="fresh-top" style="cursor:pointer" onclick="openEdit('${l.rowIndex}')">
+        <div style="flex:1;min-width:0">
+          <div class="fresh-name">${getName(l)}${scoreBadge(getScore(l))}</div>
+          <div class="fresh-detail" style="margin-top:2px">${getPhone(l)}${getLocation(l)?` · <strong style="color:var(--dark)">${getLocation(l)}</strong>`:''}</div>
+        </div>
+        <span class="fc-time">${ta}</span>
       </div>
-      <div class="fresh-detail">${getPhone(l)}${getLocation(l)?' · '+getLocation(l):''}</div>
-      <div class="fresh-detail" style="margin-top:2px">${[
-        cv(l['Project Type']||l['project_type_?']||l['project_type']||''),
-        cv(l['Property Type']||l['property_type.?']||l['property_type']||''),
-        cv(l['Scope']||l['scope_of_work.?']||l['scope_of_work']||''),
-        cv(l['Area (sq.ft)']||l['area_in_sq.ft.?']||'')
-      ].filter(Boolean).join(' · ')||'—'}</div>
-      <div class="fresh-detail" style="margin-top:2px">${getBudget(l)||'—'} · ${getTimeline(l)||'—'}</div>
-      <div style="display:flex;gap:6px;margin-top:7px">
-        <button class="btn btn-call" onclick="event.stopPropagation();openCall('${l.rowIndex}')">📞 Call</button>
-        <button class="btn btn-wa" onclick="event.stopPropagation();openWA('${l.rowIndex}')">💬 WA</button>
+      <div class="fc-chips">
+        ${getBudget(l)?`<span class="fc-chip budget">₹ ${getBudget(l)}</span>`:''}
+        ${chips.map(ch=>`<span class="fc-chip">${ch}</span>`).join('')}
+        ${calls>0?`<span class="fc-chip">📞 ${calls} call${calls>1?'s':''}</span>`:''}
       </div>
-    </div>`).join('')+
-    (newLeads.length>5?`<div class="more-leads" style="cursor:pointer;color:var(--gold);font-weight:500" onclick="goToAllNewLeads()">+ ${newLeads.length-5} more fresh leads →</div>`:'');
+      <div class="fc-btns" onclick="event.stopPropagation()">
+        <button class="fc-btn fc-btn-call" onclick="openCall('${l.rowIndex}')">📞 Call</button>
+        <button class="fc-btn fc-btn-wa" onclick="openWA('${l.rowIndex}')">💬 WhatsApp</button>
+        <button class="fc-btn fc-btn-edit" onclick="openEdit('${l.rowIndex}')">✏️</button>
+      </div>
+    </div>`;
+  }).join('')+
+  (newLeads.length>6?`<div class="more-leads" style="cursor:pointer;color:var(--gold);font-weight:500;text-align:center;padding:8px 0" onclick="goToAllNewLeads()">+ ${newLeads.length-6} more fresh leads →</div>`:'');
 }
 
 // Pipeline overview
@@ -776,7 +853,7 @@ function renderAll(){
     <td>${getLocation(l)||'—'}</td>
     <td>${getTimeline(l)||'—'}</td>
     <td>${l['Source']||l['platform']||'—'}</td>
-    <td>${getScore(l)||'—'}</td>
+    <td>${scoreBadge(getScore(l))||'—'}</td>
     <td><span class="badge" style="background:${SC[getStage(l)]}18;color:${SC[getStage(l)]}">${getStage(l)}</span></td>
     <td>${fuDate}</td>
     <td style="display:flex;gap:4px;align-items:center" onclick="event.stopPropagation()">
@@ -1043,6 +1120,7 @@ function switchTab(name,el){
   const titles={dashboard:'Dashboard',pipeline:'Pipeline',leads:'All Leads',reports:'Reports',tutorial:'How to Use'};
   document.getElementById('page-title').textContent=titles[name]||name;
   if(name==='pipeline'){renderPipelineCounts();renderKanban();}
+  if(name==='leads'){renderAll();}
   if(name==='reports'){
     const tod=new Date().toISOString().split('T')[0];
     document.getElementById('report-from').value=tod;
@@ -1078,6 +1156,66 @@ if(window.innerWidth<=768){
 
 // Page date
 document.getElementById('page-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+
+// ══════════════════════════════════════════════
+// ACTIVITY TIMELINE
+// ══════════════════════════════════════════════
+function buildTimeline(l){
+  const rows=[];
+  const ct=l['Lead Date']||l['created_time']||'';
+  if(ct){try{const d=new Date(ct.toString().includes('T')?ct:ct+'T00:00:00');rows.push({dot:'blue',title:'Lead Created',sub:d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+' via '+(l['Source']||l['platform']||'Meta')});}catch(e){}}
+  const calls=parseInt(l['Call Attempts']||'0');
+  if(calls>0)rows.push({dot:'amber',title:calls+' Call'+(calls>1?'s':'')+' Made',sub:l['Call Status']||'—'});
+  if(l['Last Contacted'])rows.push({dot:'green',title:'Last Contacted',sub:l['Last Contacted']});
+  const stage=getStage(l);
+  if(stage!=='New Lead'){const dm={'Contacted':'gold','Site Visit':'purple','Proposal Sent':'amber','Converted':'green','Lost':'red'};rows.push({dot:dm[stage]||'gold',title:'Stage → '+stage,sub:''});}
+  if(l['Follow Up Date']){const fu=parseFollowUpDate(l['Follow Up Date']);const isToday=fu===today();const isPast=fu&&fu<today();rows.push({dot:isPast?'red':isToday?'amber':'blue',title:'Follow Up'+(isToday?' — TODAY 🔔':isPast?' — OVERDUE ⚠️':''),sub:fmtDate(l['Follow Up Date'])});}
+  if(l['Site Visit Date'])rows.push({dot:'purple',title:'Site Visit Scheduled',sub:fmtDate(l['Site Visit Date'])});
+  if(l['Proposal Amount (₹)'])rows.push({dot:'gold',title:'Proposal Sent',sub:'₹'+l['Proposal Amount (₹)']});
+  if(l['CRM Remarks'])rows.push({dot:'blue',title:'Note',sub:l['CRM Remarks']});
+  if(!rows.length)return '<div style="font-size:12px;color:var(--soft);padding:6px 0">No activity yet — make first call!</div>';
+  return rows.reverse().map(r=>`<div class="tl-row"><div class="tl-dot tl-${r.dot}"></div><div class="tl-info"><strong>${r.title}</strong>${r.sub?`<small>${r.sub}</small>`:''}</div></div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// NOTIFICATION SYSTEM — Privyr style
+// ══════════════════════════════════════════════
+let _lastCount=0,_ntLeadId=null,_ntTimer=null;
+
+function ntShow(lead){
+  _ntLeadId=lead.rowIndex;
+  document.getElementById('ntTitle').textContent='🔔 New Lead — '+getName(lead);
+  document.getElementById('ntSub').textContent=getPhone(lead)+(getLocation(lead)?' · '+getLocation(lead):'')+(getBudget(lead)?' · ₹'+getBudget(lead):'');
+  document.getElementById('ntCallBtn').onclick=()=>{ntClose();openCall(lead.rowIndex);};
+  document.getElementById('ntWaBtn').onclick=()=>{ntClose();openWA(lead.rowIndex);};
+  const t=document.getElementById('ntToast');
+  t.classList.add('show');
+  if(_ntTimer)clearTimeout(_ntTimer);
+  _ntTimer=setTimeout(ntClose,15000);
+  // Browser notification
+  if(Notification.permission==='granted'){
+    try{new Notification('New Lead — '+getName(lead),{body:getPhone(lead)+' · '+getBudget(lead),icon:'https://arteriors02.github.io/Upscale-CRM/favicon.ico'});}catch(e){}
+  }
+}
+function ntClose(){
+  document.getElementById('ntToast').classList.remove('show');
+  if(_ntTimer)clearTimeout(_ntTimer);
+}
+function checkNewLeads(newData){
+  if(_lastCount===0){_lastCount=newData.length;return;}
+  if(newData.length>_lastCount){
+    const fresh=newData.slice(0,newData.length-_lastCount);
+    fresh.forEach(l=>ntShow(l));
+  }
+  _lastCount=newData.length;
+}
+function reqNotifPerm(){
+  if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
+}
+// ══════════════════════════════════════════════
+// END NEW FEATURES
+// ══════════════════════════════════════════════
 
 // Call flow
 function openCall(rowIndex){
@@ -1143,10 +1281,12 @@ async function saveCallResult(){
   const updates={'Stage':newStage,'Call Status':callStatus,'Call Attempts':attempts.toString(),'Last Contacted':now.toISOString().split('T')[0]};
   if(newFollowup)updates['Follow Up Date']=newFollowup;
   if(remark)updates['CRM Remarks']=remark;
-  // Update local & close modal IMMEDIATELY
+  // CLOSE MODAL FIRST — no waiting
+  closeModal('call-bg');
+  callResult=null;
+  // Update local data
   if(l) Object.assign(l,updates);
   render();
-  closeModal('call-bg');
   // Save to sheet silently in background
   try{
     await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'updateLead',rowIndex:parseInt(callLeadId),updates})});
@@ -1218,6 +1358,9 @@ function openEdit(rowIndex){
   document.getElementById('e-reasonlost').value=l['Reason Lost']||'';
   document.getElementById('e-referral').value=l['Referral By']||'';
   document.getElementById('e-remarks').value=l['CRM Remarks']||'';
+  // Inject timeline
+  const tlEl=document.getElementById('leadTimeline');
+  if(tlEl) tlEl.innerHTML=buildTimeline(l);
   document.getElementById('edit-bg').classList.add('open');
 }
 
@@ -1234,11 +1377,12 @@ async function saveEdit(){
     'Referral By':document.getElementById('e-referral').value,
     'CRM Remarks':document.getElementById('e-remarks').value
   };
-  // Update local & close IMMEDIATELY — no waiting
+  // CLOSE MODAL FIRST
+  closeModal('edit-bg');
+  // Update local data
   const l=getLead(editLeadId);
   if(l) Object.assign(l,updates);
   render();
-  closeModal('edit-bg');
   // Save silently in background
   try{
     await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'updateLead',rowIndex:parseInt(editLeadId),updates})});
@@ -1278,12 +1422,13 @@ async function saveNewLead(){
     'CRM Remarks':document.getElementById('al-notes').value,
     'created_time':new Date().toISOString()
   };
-  // Add locally immediately
+  // CLOSE MODAL FIRST
+  closeModal('addlead-bg');
+  btn.textContent='Save to Sheet';btn.disabled=false;
+  // Add locally
   newRow['rowIndex'] = Date.now();
   leads.push(newRow);
   render();
-  closeModal('addlead-bg');
-  btn.textContent='Save to Sheet';btn.disabled=false;
   // Try saving to sheet silently
   setSyncStatus('loading','Saving...');
   try{
@@ -1315,7 +1460,10 @@ function showToast(msg){
   t.textContent=msg;t.style.opacity='1';
   setTimeout(()=>{t.style.opacity='0';},2500);
 }
-function closeModal(id){document.getElementById(id).classList.remove('open');}
+function closeModal(id){
+  const el=document.getElementById(id);
+  if(el){el.classList.remove('open');el.style.display='none';setTimeout(()=>{el.style.display='';},50);}
+}
 function bgClose(e,id){if(e.target===document.getElementById(id))closeModal(id);}
 
 // ── DOWNLOAD FUNCTIONS ──
@@ -1394,7 +1542,20 @@ function downloadLeadsPDF(){
       </tr>`).join('')}
     </tbody>
   </table>
-  </body></html>`);
+  
+<!-- NOTIFICATION TOAST -->
+<div class="notif-toast" id="ntToast">
+  <button class="nt-close" onclick="ntClose()">×</button>
+  <div class="nt-title" id="ntTitle">🔔 New Lead!</div>
+  <div class="nt-sub" id="ntSub"></div>
+  <div class="nt-btns">
+    <button class="nt-btn nt-gold" id="ntCallBtn">📞 Call Now</button>
+    <button class="nt-btn nt-ghost" id="ntWaBtn">💬 WA</button>
+    <button class="nt-btn nt-ghost" onclick="ntClose()">Later</button>
+  </div>
+</div>
+
+</body></html>`);
   win.document.close();
   win.focus();
   setTimeout(()=>win.print(),500);
@@ -1507,7 +1668,20 @@ function downloadReportsPDF(){
       </tr>`).join('')}
     </tbody>
   </table>
-  </body></html>`);
+  
+<!-- NOTIFICATION TOAST -->
+<div class="notif-toast" id="ntToast">
+  <button class="nt-close" onclick="ntClose()">×</button>
+  <div class="nt-title" id="ntTitle">🔔 New Lead!</div>
+  <div class="nt-sub" id="ntSub"></div>
+  <div class="nt-btns">
+    <button class="nt-btn nt-gold" id="ntCallBtn">📞 Call Now</button>
+    <button class="nt-btn nt-ghost" id="ntWaBtn">💬 WA</button>
+    <button class="nt-btn nt-ghost" onclick="ntClose()">Later</button>
+  </div>
+</div>
+
+</body></html>`);
   win.document.close();
   win.focus();
   setTimeout(()=>win.print(),500);
@@ -1609,8 +1783,22 @@ function closeLeadPanel() {
 // ── END DESKTOP LEAD PANEL ──
 
 // Init
+reqNotifPerm();
 loadLeads();
-setInterval(loadLeads,5*60*1000);
+setInterval(loadLeads,2*60*1000); // Check every 2 min
 </script>
+
+<!-- NOTIFICATION TOAST -->
+<div class="notif-toast" id="ntToast">
+  <button class="nt-close" onclick="ntClose()">×</button>
+  <div class="nt-title" id="ntTitle">🔔 New Lead!</div>
+  <div class="nt-sub" id="ntSub"></div>
+  <div class="nt-btns">
+    <button class="nt-btn nt-gold" id="ntCallBtn">📞 Call Now</button>
+    <button class="nt-btn nt-ghost" id="ntWaBtn">💬 WA</button>
+    <button class="nt-btn nt-ghost" onclick="ntClose()">Later</button>
+  </div>
+</div>
+
 </body>
 </html>
